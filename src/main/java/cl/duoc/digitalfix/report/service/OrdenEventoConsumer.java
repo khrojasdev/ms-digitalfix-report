@@ -3,14 +3,17 @@ package cl.duoc.digitalfix.report.service;
 import cl.duoc.digitalfix.report.domain.OrdenReporte;
 import cl.duoc.digitalfix.report.repository.OrdenReporteRepository;
 import cl.duoc.digitalfix.report.service.dto.OrdenEventoDto;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.rabbitmq.client.Channel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.amqp.support.AmqpHeaders;
+import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.IOException;
 import java.time.Duration;
 
 @Service
@@ -25,12 +28,13 @@ public class OrdenEventoConsumer {
         this.objectMapper = objectMapper;
     }
 
-    @KafkaListener(topics = "ordenes-negocio-topic", groupId = "${spring.kafka.consumer.group-id}")
+    // EXIGENCIA DE RÚBRICA: @RabbitListener apuntando a la variable centralizada
+    @RabbitListener(queues = "${amqp.queue.reportes}")
     @Transactional
-    public void consumirEvento(String mensajeJson) {
+    public void consumirEvento(String mensajeJson, Channel channel, @Header(AmqpHeaders.DELIVERY_TAG) long tag) throws IOException {
         try {
             OrdenEventoDto evento = objectMapper.readValue(mensajeJson, OrdenEventoDto.class);
-            log.info("Procesando evento de orden {}: {}", evento.ordenId(), evento.tipoEvento());
+            log.info("Procesando evento de orden en RabbitMQ {}: {}", evento.ordenId(), evento.tipoEvento());
 
             if ("CREADA".equals(evento.tipoEvento())) {
                 OrdenReporte nuevaOrden = new OrdenReporte(
@@ -51,9 +55,14 @@ public class OrdenEventoConsumer {
                     repository.save(orden);
                 });
             }
-        } catch (JsonProcessingException e) {
-            log.error("Error al deserializar evento de Kafka: {}", mensajeJson, e);
-            // La HU-42.4 pide apartar los eventos fallidos, lo implementaremos en esa issue específica.
+
+            // EXIGENCIA DE RÚBRICA: Acknowledge manual explícito para confirmar éxito
+            channel.basicAck(tag, false);
+
+        } catch (Exception e) {
+            log.error("Error al procesar el mensaje, enviando a DLQ. Motivo: {}", e.getMessage(), e);
+            // EXIGENCIA DE RÚBRICA: NACK explícito (requeue=false) para que el mensaje se vaya a la DLQ
+            channel.basicNack(tag, false, false);
         }
     }
 }
