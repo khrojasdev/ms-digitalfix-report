@@ -2,6 +2,7 @@ package cl.duoc.digitalfix.report.service;
 
 import cl.duoc.digitalfix.report.repository.OrdenReporteRepository;
 import cl.duoc.digitalfix.report.web.dto.IndicadoresDto;
+import cl.duoc.digitalfix.report.web.dto.ServicioRankingDto;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -31,5 +32,15 @@ public class ReporteService {
                 ));
 
         return new IndicadoresDto(totalOrdenes, tiempoMedio, conteoPorEstado);
+    }
+    public List<ServicioRankingDto> obtenerRankingServiciosDesde(LocalDateTime fechaDesde) {
+        List<Object[]> resultados = repository.findTopServiciosDesde(fechaDesde);
+
+        return resultados.stream()
+                .map(fila -> new ServicioRankingDto(
+                        (Long) fila[0], // servicioId
+                        (Long) fila[1]  // cantidad
+                ))
+                .collect(Collectors.toList());
     }
 }
