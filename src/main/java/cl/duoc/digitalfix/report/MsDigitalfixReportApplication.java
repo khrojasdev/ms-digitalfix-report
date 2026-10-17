@@ -9,5 +9,4 @@ public class MsDigitalfixReportApplication {
     public static void main(String[] args) {
         SpringApplication.run(MsDigitalfixReportApplication.class, args);
     }
-
 }

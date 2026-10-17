@@ -1,0 +1,49 @@
+spring:
+  application:
+    name: ms-digitalfix-report
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:oracle:thin:@//localhost:1521/XEPDB1}
+    username: ${SPRING_DATASOURCE_USERNAME:DFX_REPORT}
+    password: ${ORACLE_REPORT_PASSWORD:digitalfix}
+    driver-class-name: oracle.jdbc.OracleDriver
+    hikari:
+      pool-name: report-pool
+      maximum-pool-size: 10
+      minimum-idle: 2
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    clean-disabled: true
+    locations: classpath:db/migration
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: ${KAFKA_GROUP_ID:ms-digitalfix-report-group}
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    listener:
+      auto-startup: ${KAFKA_LISTENER_AUTO_STARTUP:true}
+
+server:
+  port: ${PUERTO:8085}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: always
+
+logging:
+  pattern:
+    console: "%d{HH:mm:ss.SSS} %-5level [%X{correlacion:-sin-correlacion}] %logger{36} - %msg%n"
