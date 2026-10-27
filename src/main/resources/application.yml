@@ -20,15 +20,15 @@ spring:
     clean-disabled: true
     locations: classpath:db/migration
   rabbitmq:
-  host: ${RABBITMQ_HOST:localhost}
-  port: ${RABBITMQ_PORT:5672}
-  username: ${RABBITMQ_USER:guest}
-  password: ${RABBITMQ_PASSWORD:guest}
-  listener:
-    simple:
-      # EXIGENCIA DE RÚBRICA: Confirmación manual (ACK)
-      acknowledge-mode: manual
-      default-requeue-rejected: false # Si falla un NACK, lo manda a la DLQ en vez de encolarlo infinitamente
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+    listener:
+      simple:
+        # Confirmacion manual (ACK/NACK la decide ProcesadorDeMensajes)
+        acknowledge-mode: manual
+        default-requeue-rejected: false # un NACK va a la DLQ, nunca se reencola en bucle
 
 # EXIGENCIA DE RÚBRICA: Nombres centralizados
 amqp:
@@ -39,6 +39,11 @@ amqp:
     reportes-dlq: ordenes.reportes.dlq
   routing-key:
     reportes: ordenes.eventos.*
+  # Fallas transitorias (base de datos o red): cuantas veces se intenta y la
+  # espera inicial, que se duplica en cada intento. Ver ProcesadorDeMensajes.
+  reintentos:
+    maximo: 3
+    espera-ms: 1000
 
 server:
   port: ${PUERTO:8085}
