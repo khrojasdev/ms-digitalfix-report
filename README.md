@@ -11,7 +11,36 @@ Reporteria: indicadores de la red construidos a partir de eventos, sin tocar la 
 
 ## Tecnologias
 
-Spring Boot 3, Kafka, Spring Data JPA, Oracle
+Spring Boot 3, RabbitMQ, Spring Data JPA, Oracle
+
+## API (solo ADMIN, siempre de su empresa)
+
+| Ruta | Que devuelve |
+|---|---|
+| `GET /api/reports/indicators?periodo=24h\|7d\|30d` | Total de ordenes, tiempo medio de resolucion (min) y conteo por estado |
+| `GET /api/reports/top-services?periodo=` | Servicios mas solicitados |
+| `GET /api/reports/orders-by-hour?periodo=` | Ordenes por hora del dia (0 a 23), siempre las 24 horas |
+
+## Mensajeria (RabbitMQ)
+
+`ordenes.negocio.exchange` --`ordenes.eventos.*`--> `ordenes.reportes.queue` (DLQ
+`ordenes.reportes.dlq`). Nombres en `application.yml` (`amqp.*`), beans en
+`config/RabbitMQConfig`, consumidor en `mensajeria.ordenes.OrdenEventoConsumer`.
+El consumidor solo lee el mensaje; la proyeccion (`service.ProyeccionDeOrdenes`)
+mantiene la tabla `ordenes_reporte`.
+
+| Situacion | Decision (`mensajeria.ProcesadorDeMensajes`) |
+|---|---|
+| Se aplico el evento | `ACK` |
+| Mensaje invalido (JSON ilegible, sin orden, tipo o empresa) | `NACK` sin reencolar: a la DLQ de inmediato |
+| Falla transitoria (base de datos o red) | Hasta `amqp.reintentos.maximo` intentos (1 s, 2 s, 4 s...), luego a la DLQ |
+| Otro error | `NACK` a la DLQ sin reintentar |
+
+## Pruebas
+
+`./mvnw test` (H2 en memoria): eventos con el formato real de workorders de
+punta a punta, aislamiento por empresa, ordenes por hora, acceso solo ADMIN y la
+politica de ACK/reintento/DLQ.
 
 ## Integrantes
 
@@ -33,12 +62,6 @@ Spring Boot 3, Kafka, Spring Data JPA, Oracle
 - [`ms-digitalfix-audit`](https://github.com/khrojasdev/ms-digitalfix-audit) - Microservicio
 - [`digitalfix-infra`](https://github.com/khrojasdev/digitalfix-infra) - Infraestructura
 
-## Pendiente por definir
-
-El documento del caso pide ademas *un microservicio administrador de RabbitMQ y otro de
-Kafka, segun la pauta de cada evaluacion*. Ni la EP1 ni la EP2 los evaluan, asi que no
-existen todavia como repositorios. Cuando la pauta de la evaluacion final los exija se
-agregaran como `ms-digitalfix-rabbit` y `ms-digitalfix-kafka`. La decision del equipo fue esperar la pauta.
 
 ## Tablero
 
