@@ -5,6 +5,11 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+/**
+ * Topologia de reportes: ordenes.negocio.exchange --ordenes.eventos.*-->
+ * ordenes.reportes.queue, con su DLQ por el exchange por defecto. Los nombres
+ * se leen de application.yml (amqp.*).
+ */
 @Configuration
 public class RabbitMQConfig {
 
@@ -23,7 +28,7 @@ public class RabbitMQConfig {
     // 1. Exchange Principal
     @Bean
     public TopicExchange negocioExchange() {
-        return new TopicExchange(exchangeName);
+        return new TopicExchange(exchangeName, true, false);
     }
 
     // 2. Dead Letter Queue (DLQ) para apartar eventos fallidos
