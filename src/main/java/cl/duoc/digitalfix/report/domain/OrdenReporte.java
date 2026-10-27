@@ -11,6 +11,7 @@ public class OrdenReporte {
 
     @Id
     private Long ordenId;
+    private Long empresaId;
     private String estado;
     private Long servicioId;
     private LocalDateTime fechaCreacion;
@@ -21,7 +22,12 @@ public class OrdenReporte {
     public OrdenReporte() {}
 
     public OrdenReporte(Long ordenId, String estado, Long servicioId, LocalDateTime fechaCreacion) {
+        this(ordenId, null, estado, servicioId, fechaCreacion);
+    }
+
+    public OrdenReporte(Long ordenId, Long empresaId, String estado, Long servicioId, LocalDateTime fechaCreacion) {
         this.ordenId = ordenId;
+        this.empresaId = empresaId;
         this.estado = estado;
         this.servicioId = servicioId;
         this.fechaCreacion = fechaCreacion;
@@ -29,6 +35,8 @@ public class OrdenReporte {
 
     public Long getOrdenId() { return ordenId; }
     public void setOrdenId(Long ordenId) { this.ordenId = ordenId; }
+    public Long getEmpresaId() { return empresaId; }
+    public void setEmpresaId(Long empresaId) { this.empresaId = empresaId; }
     public String getEstado() { return estado; }
     public void setEstado(String estado) { this.estado = estado; }
     public Long getServicioId() { return servicioId; }
